@@ -1,0 +1,404 @@
+# Task: Build a Data Processing Pipeline
+# Category: Multi-Step Planning
+# Difficulty: Hard
+
+task_id: "multi_step_data_pipeline"
+name: "Multi-Step Data Processing Pipeline"
+category: "multi_step_planning"
+difficulty: "hard"
+description: |
+  Design and implement a complete data processing pipeline that reads data from
+  multiple sources, performs transformations, validates results, and outputs
+  processed data. This task requires planning, decomposition, and sequential
+  execution across multiple stages.
+
+detailed_instructions: |
+  You need to build a data pipeline with the following stages:
+
+  STAGE 1: Data Ingestion
+  - Read customer data from `data/customers.csv`
+  - Read order data from `data/orders.json`
+  - Validate that both files exist and have expected schemas
+
+  STAGE 2: Data Transformation
+  - Join customers with their orders
+  - Calculate total spend per customer
+  - Categorize customers: bronze (<$100), silver ($100-500), gold (>$500)
+
+  STAGE 3: Data Validation
+  - Ensure no null customer IDs
+  - Verify all order amounts are positive
+  - Check referential integrity (all orders have valid customers)
+
+  STAGE 4: Output Generation
+  - Generate `output/customer_summary.csv` with columns:
+    [customer_id, name, email, total_spend, category, order_count]
+  - Generate `output/pipeline_report.json` with:
+    {
+      "total_customers": N,
+      "total_orders": N,
+      "total_revenue": N,
+      "category_breakdown": {...},
+      "validation_passed": true/false
+    }
+
+  Your solution must:
+  - Handle errors gracefully at each stage
+  - Log progress to stdout
+  - Complete within the time limit
+
+starter_code:
+  solution.py: |
+    """
+    Data Processing Pipeline
+
+    Implement a multi-stage data pipeline that processes customer and order data.
+    """
+    import json
+    import csv
+    import os
+    from pathlib import Path
+    from typing import Dict, List, Any
+
+
+    class DataPipeline:
+        """Multi-stage data processing pipeline."""
+
+        def __init__(self, data_dir: str = "data", output_dir: str = "output"):
+            self.data_dir = Path(data_dir)
+            self.output_dir = Path(output_dir)
+            self.customers: List[Dict] = []
+            self.orders: List[Dict] = []
+            self.results: Dict[str, Any] = {}
+
+        def run(self) -> bool:
+            """Execute the complete pipeline."""
+            # TODO: Implement the pipeline stages
+            # Stage 1: Data Ingestion
+            # Stage 2: Data Transformation
+            # Stage 3: Data Validation
+            # Stage 4: Output Generation
+            pass
+
+        def stage_1_ingest(self) -> bool:
+            """Stage 1: Load data from sources."""
+            # TODO: Implement data ingestion
+            pass
+
+        def stage_2_transform(self) -> bool:
+            """Stage 2: Transform and aggregate data."""
+            # TODO: Implement data transformation
+            pass
+
+        def stage_3_validate(self) -> bool:
+            """Stage 3: Validate processed data."""
+            # TODO: Implement validation
+            pass
+
+        def stage_4_output(self) -> bool:
+            """Stage 4: Generate output files."""
+            # TODO: Implement output generation
+            pass
+
+
+    if __name__ == "__main__":
+        pipeline = DataPipeline()
+        success = pipeline.run()
+        print(f"Pipeline completed: {'SUCCESS' if success else 'FAILED'}")
+
+context_files:
+  data/customers.csv: |
+    customer_id,name,email,signup_date
+    C001,Alice Johnson,alice@example.com,2024-01-15
+    C002,Bob Smith,bob@example.com,2024-02-20
+    C003,Carol White,carol@example.com,2024-03-10
+    C004,David Brown,david@example.com,2024-04-05
+    C005,Eve Davis,eve@example.com,2024-05-12
+  data/orders.json: |
+    [
+      {"order_id": "O001", "customer_id": "C001", "amount": 50.00, "date": "2024-06-01"},
+      {"order_id": "O002", "customer_id": "C001", "amount": 75.50, "date": "2024-06-15"},
+      {"order_id": "O003", "customer_id": "C002", "amount": 200.00, "date": "2024-06-10"},
+      {"order_id": "O004", "customer_id": "C002", "amount": 350.00, "date": "2024-06-20"},
+      {"order_id": "O005", "customer_id": "C003", "amount": 25.00, "date": "2024-06-05"},
+      {"order_id": "O006", "customer_id": "C003", "amount": 45.00, "date": "2024-06-25"},
+      {"order_id": "O007", "customer_id": "C004", "amount": 600.00, "date": "2024-06-08"},
+      {"order_id": "O008", "customer_id": "C005", "amount": 100.00, "date": "2024-06-12"}
+    ]
+
+reference_solution:
+  solution.py: |
+    """Reference implementation of the data pipeline."""
+    import json
+    import csv
+    import os
+    from pathlib import Path
+    from typing import Dict, List, Any
+    from collections import defaultdict
+
+
+    class DataPipeline:
+        def __init__(self, data_dir: str = "data", output_dir: str = "output"):
+            self.data_dir = Path(data_dir)
+            self.output_dir = Path(output_dir)
+            self.customers: List[Dict] = []
+            self.orders: List[Dict] = []
+            self.results: Dict[str, Any] = {}
+
+        def run(self) -> bool:
+            print("Starting pipeline...")
+            stages = [
+                ("Stage 1: Data Ingestion", self.stage_1_ingest),
+                ("Stage 2: Transformation", self.stage_2_transform),
+                ("Stage 3: Validation", self.stage_3_validate),
+                ("Stage 4: Output", self.stage_4_output),
+            ]
+
+            for name, stage_func in stages:
+                print(f"Executing {name}...")
+                if not stage_func():
+                    print(f"ERROR: {name} failed!")
+                    return False
+                print(f"{name} completed successfully.")
+
+            return True
+
+        def stage_1_ingest(self) -> bool:
+            try:
+                # Load customers
+                with open(self.data_dir / "customers.csv") as f:
+                    reader = csv.DictReader(f)
+                    self.customers = list(reader)
+
+                # Load orders
+                with open(self.data_dir / "orders.json") as f:
+                    self.orders = json.load(f)
+
+                return len(self.customers) > 0 and len(self.orders) > 0
+            except Exception as e:
+                print(f"Ingestion error: {e}")
+                return False
+
+        def stage_2_transform(self) -> bool:
+            try:
+                customer_spend = defaultdict(lambda: {"total": 0, "count": 0})
+
+                for order in self.orders:
+                    cid = order["customer_id"]
+                    customer_spend[cid]["total"] += float(order["amount"])
+                    customer_spend[cid]["count"] += 1
+
+                self.results = {}
+                for customer in self.customers:
+                    cid = customer["customer_id"]
+                    spend_info = customer_spend[cid]
+                    total = spend_info["total"]
+
+                    if total < 100:
+                        category = "bronze"
+                    elif total <= 500:
+                        category = "silver"
+                    else:
+                        category = "gold"
+
+                    self.results[cid] = {
+                        **customer,
+                        "total_spend": total,
+                        "category": category,
+                        "order_count": spend_info["count"],
+                    }
+
+                return True
+            except Exception as e:
+                print(f"Transform error: {e}")
+                return False
+
+        def stage_3_validate(self) -> bool:
+            try:
+                for cid, data in self.results.items():
+                    if not cid:
+                        return False
+                    if data["total_spend"] < 0:
+                        return False
+                return True
+            except Exception as e:
+                print(f"Validation error: {e}")
+                return False
+
+        def stage_4_output(self) -> bool:
+            try:
+                self.output_dir.mkdir(parents=True, exist_ok=True)
+
+                # CSV output
+                with open(self.output_dir / "customer_summary.csv", "w", newline="") as f:
+                    writer = csv.DictWriter(f, fieldnames=[
+                        "customer_id", "name", "email", "total_spend", "category", "order_count"
+                    ])
+                    writer.writeheader()
+                    for cid, data in self.results.items():
+                        writer.writerow({
+                            "customer_id": cid,
+                            "name": data["name"],
+                            "email": data["email"],
+                            "total_spend": data["total_spend"],
+                            "category": data["category"],
+                            "order_count": data["order_count"],
+                        })
+
+                # JSON report
+                categories = defaultdict(int)
+                for data in self.results.values():
+                    categories[data["category"]] += 1
+
+                report = {
+                    "total_customers": len(self.results),
+                    "total_orders": len(self.orders),
+                    "total_revenue": sum(d["total_spend"] for d in self.results.values()),
+                    "category_breakdown": dict(categories),
+                    "validation_passed": True,
+                }
+
+                with open(self.output_dir / "pipeline_report.json", "w") as f:
+                    json.dump(report, f, indent=2)
+
+                return True
+            except Exception as e:
+                print(f"Output error: {e}")
+                return False
+
+
+    if __name__ == "__main__":
+        pipeline = DataPipeline()
+        success = pipeline.run()
+        print(f"Pipeline completed: {'SUCCESS' if success else 'FAILED'}")
+
+public_tests:
+  - test_id: "pipeline_runs"
+    name: "Pipeline executes successfully"
+    input_data:
+      code: |
+        from solution import DataPipeline
+        pipeline = DataPipeline()
+        result = pipeline.run()
+        if result:
+            print("PASS")
+        else:
+            print("FAIL")
+    expected_output: "PASS"
+    weight: 2.0
+
+  - test_id: "csv_output_exists"
+    name: "CSV output file generated"
+    input_data:
+      code: |
+        import os
+        if os.path.exists("output/customer_summary.csv"):
+            print("PASS")
+        else:
+            print("FAIL: customer_summary.csv not found")
+    expected_output: "PASS"
+    weight: 1.5
+
+  - test_id: "json_report_exists"
+    name: "JSON report generated"
+    input_data:
+      code: |
+        import os
+        if os.path.exists("output/pipeline_report.json"):
+            print("PASS")
+        else:
+            print("FAIL: pipeline_report.json not found")
+    expected_output: "PASS"
+    weight: 1.5
+
+hidden_tests:
+  - test_id: "csv_content_valid"
+    name: "CSV contains correct data"
+    input_data:
+      code: |
+        import csv
+        with open("output/customer_summary.csv") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+
+        # Check row count
+        if len(rows) != 5:
+            print(f"FAIL: Expected 5 rows, got {len(rows)}")
+        else:
+            # Check C004 is gold category
+            c004 = next((r for r in rows if r["customer_id"] == "C004"), None)
+            if c004 and c004["category"] == "gold":
+                print("PASS")
+            else:
+                print("FAIL: C004 should be gold category")
+    expected_output: "PASS"
+    weight: 2.5
+    is_hidden: true
+
+  - test_id: "json_report_valid"
+    name: "JSON report contains correct totals"
+    input_data:
+      code: |
+        import json
+        with open("output/pipeline_report.json") as f:
+            report = json.load(f)
+
+        if report["total_customers"] == 5 and report["total_orders"] == 8:
+            if abs(report["total_revenue"] - 1445.50) < 0.01:
+                print("PASS")
+            else:
+                print(f"FAIL: Wrong revenue {report['total_revenue']}")
+        else:
+            print(f"FAIL: Wrong counts")
+    expected_output: "PASS"
+    weight: 3.0
+    is_hidden: true
+
+  - test_id: "categories_correct"
+    name: "Customer categories are correct"
+    input_data:
+      code: |
+        import json
+        with open("output/pipeline_report.json") as f:
+            report = json.load(f)
+
+        breakdown = report.get("category_breakdown", {})
+        # Expected: bronze=2 (C003, C005), silver=2 (C001, C002), gold=1 (C004)
+        if breakdown.get("bronze") == 2 and breakdown.get("silver") == 2 and breakdown.get("gold") == 1:
+            print("PASS")
+        else:
+            print(f"FAIL: Wrong breakdown {breakdown}")
+    expected_output: "PASS"
+    weight: 2.5
+    is_hidden: true
+
+evaluation_criteria:
+  - "Pipeline executes all four stages sequentially"
+  - "Correct data ingestion from multiple formats"
+  - "Accurate transformation and aggregation"
+  - "Proper validation of data integrity"
+  - "Correct output file generation"
+  - "Error handling at each stage"
+
+scoring_rubric:
+  correctness: 50.0
+  multi_step_execution: 25.0
+  error_handling: 15.0
+  code_quality: 10.0
+
+max_score: 100.0
+time_limit_seconds: 120
+memory_limit_mb: 256
+allowed_languages:
+  - python
+
+tags:
+  - multi-step
+  - data-pipeline
+  - planning
+  - file-io
+  - aggregation
+
+author: "AlphaEvolve Team"
+version: "1.0.0"
+source: "Original"

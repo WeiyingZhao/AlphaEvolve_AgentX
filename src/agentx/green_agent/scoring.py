@@ -35,6 +35,9 @@ class ScoreCategory(str, Enum):
     SECURITY = "security"
     DOCUMENTATION = "documentation"
     STYLE = "style"
+    MULTI_STEP_EXECUTION = "multi_step_execution"
+    ERROR_HANDLING = "error_handling"
+    ROBUSTNESS = "robustness"
 
 
 class TestResult(BaseModel):
@@ -51,7 +54,10 @@ class TestResult(BaseModel):
 
 
 class ScoringResult(BaseModel):
-    """Complete scoring result for a task submission."""
+    """Complete scoring result for a task submission.
+
+    Provides nuanced, multi-dimensional scoring beyond binary pass/fail.
+    """
 
     task_id: str
     total_score: float
@@ -70,17 +76,30 @@ class ScoringResult(BaseModel):
     tests_total: int = 0
     pass_rate: float = 0.0
 
-    # Quality metrics
+    # Hidden test breakdown (for detailed evaluation)
+    public_tests_passed: int = 0
+    hidden_tests_passed: int = 0
+
+    # Quality metrics (multi-dimensional)
     code_quality_score: float = 0.0
     performance_score: float = 0.0
+    robustness_score: float = 0.0
+    efficiency_score: float = 0.0
 
-    # Feedback
+    # Partial credit tracking
+    partial_credit_earned: float = 0.0
+    partial_credit_details: dict[str, float] = Field(default_factory=dict)
+
+    # Feedback (nuanced)
     feedback: list[str] = Field(default_factory=list)
     suggestions: list[str] = Field(default_factory=list)
+    strengths: list[str] = Field(default_factory=list)
+    weaknesses: list[str] = Field(default_factory=list)
 
     # Metadata
     execution_time_seconds: float = 0.0
     evaluation_timestamp: str = ""
+    difficulty_multiplier: float = 1.0
 
 
 @dataclass
@@ -300,46 +319,46 @@ class ScoringEngine:
     ) -> TestResult:
         try:
             # Write submitted files
-                for filename, content in files.items():
-                    filepath = tmppath / filename
-                    filepath.parent.mkdir(parents=True, exist_ok=True)
-                    filepath.write_text(content)
+            for filename, content in files.items():
+                filepath = tmppath / filename
+                filepath.parent.mkdir(parents=True, exist_ok=True)
+                filepath.write_text(content)
 
-                # Create test runner script
-                test_script = self._generate_test_script(test_case)
-                test_file = tmppath / "_test_runner.py"
-                test_file.write_text(test_script)
+            # Create test runner script
+            test_script = self._generate_test_script(test_case)
+            test_file = tmppath / "_test_runner.py"
+            test_file.write_text(test_script)
 
-                # Execute test
-                result = subprocess.run(
-                    ["python", str(test_file)],
-                    cwd=tmppath,
-                    capture_output=True,
-                    text=True,
-                    timeout=min(test_case.timeout_seconds, self.timeout),
+            # Execute test
+            result = subprocess.run(
+                ["python", str(test_file)],
+                cwd=tmppath,
+                capture_output=True,
+                text=True,
+                timeout=min(test_case.timeout_seconds, self.timeout),
+            )
+
+            execution_time = (time.time() - start_time) * 1000
+
+            if result.returncode == 0:
+                return TestResult(
+                    test_id=test_case.test_id,
+                    passed=True,
+                    execution_time_ms=execution_time,
+                    stdout=result.stdout,
+                    stderr=result.stderr,
+                    expected_output=test_case.expected_output,
                 )
-
-                execution_time = (time.time() - start_time) * 1000
-
-                if result.returncode == 0:
-                    return TestResult(
-                        test_id=test_case.test_id,
-                        passed=True,
-                        execution_time_ms=execution_time,
-                        stdout=result.stdout,
-                        stderr=result.stderr,
-                        expected_output=test_case.expected_output,
-                    )
-                else:
-                    return TestResult(
-                        test_id=test_case.test_id,
-                        passed=False,
-                        execution_time_ms=execution_time,
-                        stdout=result.stdout,
-                        stderr=result.stderr,
-                        expected_output=test_case.expected_output,
-                        error_message=result.stderr or "Test failed",
-                    )
+            else:
+                return TestResult(
+                    test_id=test_case.test_id,
+                    passed=False,
+                    execution_time_ms=execution_time,
+                    stdout=result.stdout,
+                    stderr=result.stderr,
+                    expected_output=test_case.expected_output,
+                    error_message=result.stderr or "Test failed",
+                )
 
         except subprocess.TimeoutExpired:
             return TestResult(

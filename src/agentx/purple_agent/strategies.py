@@ -249,6 +249,85 @@ class TestWritingStrategy(BaseStrategy):
         return {"test_solution.py": "\n".join(test_lines)}
 
 
+class MultiStepPlanningStrategy(BaseStrategy):
+    """Strategy for multi-step planning tasks requiring decomposition."""
+
+    @property
+    def supported_task_types(self) -> list[str]:
+        return ["multi_step_planning"]
+
+    async def solve(self, task: TaskRequest) -> dict[str, str]:
+        """Solve multi-step planning tasks by implementing all stages."""
+        output_files = {}
+
+        # Start with any provided starter code
+        for filename, content in task.files.items():
+            output_files[filename] = content
+
+        # If there's a solution.py template, enhance it
+        if "solution.py" in output_files:
+            content = output_files["solution.py"]
+            # Try to implement the methods marked with TODO
+            content = self._implement_todos(content, task)
+            output_files["solution.py"] = content
+
+        return output_files
+
+    def _implement_todos(self, code: str, task: TaskRequest) -> str:
+        """Attempt to implement TODO sections based on task context."""
+        # For baseline, return the code as-is
+        # A more advanced agent would implement the actual logic
+        return code
+
+
+class APIIntegrationStrategy(BaseStrategy):
+    """Strategy for API integration tasks."""
+
+    @property
+    def supported_task_types(self) -> list[str]:
+        return ["api_integration"]
+
+    async def solve(self, task: TaskRequest) -> dict[str, str]:
+        """Solve API integration tasks."""
+        output_files = {}
+
+        # Start with any provided starter code
+        for filename, content in task.files.items():
+            output_files[filename] = content
+
+        # If there's a solution.py template, enhance it
+        if "solution.py" in output_files:
+            content = output_files["solution.py"]
+            content = self._implement_api_client(content, task)
+            output_files["solution.py"] = content
+
+        return output_files
+
+    def _implement_api_client(self, code: str, task: TaskRequest) -> str:
+        """Attempt to implement API client methods."""
+        # For baseline, return the code as-is
+        # A more advanced agent would implement the actual logic
+        return code
+
+
+class MLEngineeringStrategy(BaseStrategy):
+    """Strategy for ML engineering tasks."""
+
+    @property
+    def supported_task_types(self) -> list[str]:
+        return ["ml_engineering"]
+
+    async def solve(self, task: TaskRequest) -> dict[str, str]:
+        """Solve ML engineering tasks."""
+        output_files = {}
+
+        # Start with any provided starter code
+        for filename, content in task.files.items():
+            output_files[filename] = content
+
+        return output_files
+
+
 class CompositeStrategy(BaseStrategy):
     """Composite strategy that delegates to appropriate sub-strategies."""
 
@@ -258,6 +337,9 @@ class CompositeStrategy(BaseStrategy):
             DebugStrategy(),
             RefactoringStrategy(),
             TestWritingStrategy(),
+            MultiStepPlanningStrategy(),
+            APIIntegrationStrategy(),
+            MLEngineeringStrategy(),
         ]
 
     @property

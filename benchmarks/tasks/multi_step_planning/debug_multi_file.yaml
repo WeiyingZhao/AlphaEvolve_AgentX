@@ -1,0 +1,509 @@
+# Task: Debug Multi-File Application
+# Category: Multi-Step Planning
+# Difficulty: Hard
+
+task_id: "multi_step_debug_application"
+name: "Debug Multi-File Application"
+category: "multi_step_planning"
+difficulty: "hard"
+description: |
+  Debug a multi-file application with interconnected bugs. This task requires
+  analyzing code across multiple files, understanding data flow, and fixing
+  bugs that span module boundaries. Tests true debugging skills requiring
+  planning and systematic analysis.
+
+detailed_instructions: |
+  You are given a shopping cart application with bugs spread across multiple files.
+  The application consists of:
+  - models.py: Data models for Product and Cart
+  - cart_service.py: Business logic for cart operations
+  - pricing.py: Discount and pricing calculations
+  - main.py: Entry point that demonstrates the bugs
+
+  KNOWN SYMPTOMS:
+  1. Adding items to cart sometimes loses items
+  2. Discount calculations are incorrect
+  3. Cart total doesn't match expected values
+  4. Removing items fails silently
+
+  YOUR TASK:
+  1. Analyze all files to understand the code structure
+  2. Identify all bugs (there are 5 total)
+  3. Fix each bug while maintaining the existing API
+  4. Ensure all tests pass
+
+  DEBUGGING APPROACH:
+  - Start by reading all files to understand the architecture
+  - Trace the data flow from adding an item to calculating totals
+  - Look for off-by-one errors, incorrect conditions, and logic errors
+
+starter_code:
+  models.py: |
+    """Data models for the shopping cart application."""
+    from dataclasses import dataclass, field
+    from typing import List, Optional
+
+
+    @dataclass
+    class Product:
+        """Represents a product in the store."""
+        id: str
+        name: str
+        price: float
+        category: str = "general"
+
+        def __eq__(self, other):
+            if not isinstance(other, Product):
+                return False
+            return self.id == other.id
+
+
+    @dataclass
+    class CartItem:
+        """Represents an item in the shopping cart."""
+        product: Product
+        quantity: int
+
+        @property
+        def subtotal(self) -> float:
+            # BUG 1: Wrong calculation - should be price * quantity
+            return self.product.price + self.quantity
+
+
+    @dataclass
+    class Cart:
+        """Shopping cart containing items."""
+        items: List[CartItem] = field(default_factory=list)
+        discount_code: Optional[str] = None
+
+        def find_item(self, product_id: str) -> Optional[CartItem]:
+            """Find an item in the cart by product ID."""
+            for item in self.items:
+                if item.product.id == product_id:
+                    return item
+            return None
+
+  cart_service.py: |
+    """Cart service with business logic for cart operations."""
+    from models import Cart, CartItem, Product
+    from pricing import calculate_discount
+    from typing import Optional
+
+
+    class CartService:
+        """Service for managing shopping cart operations."""
+
+        def __init__(self):
+            self.cart = Cart()
+
+        def add_item(self, product: Product, quantity: int = 1) -> bool:
+            """Add a product to the cart."""
+            if quantity < 1:
+                return False
+
+            existing = self.cart.find_item(product.id)
+
+            if existing:
+                # BUG 2: Should add quantity, not replace
+                existing.quantity = quantity
+                return True
+
+            # Add new item
+            self.cart.items.append(CartItem(product=product, quantity=quantity))
+            return True
+
+        def remove_item(self, product_id: str, quantity: int = 1) -> bool:
+            """Remove a quantity of product from cart."""
+            item = self.cart.find_item(product_id)
+
+            if not item:
+                return False
+
+            # BUG 3: Wrong comparison - should use <= not <
+            if item.quantity < quantity:
+                # Remove item entirely
+                self.cart.items = [i for i in self.cart.items if i.product.id != product_id]
+            else:
+                item.quantity -= quantity
+
+            return True
+
+        def get_subtotal(self) -> float:
+            """Calculate subtotal before discounts."""
+            return sum(item.subtotal for item in self.cart.items)
+
+        def apply_discount(self, code: str) -> bool:
+            """Apply a discount code to the cart."""
+            self.cart.discount_code = code
+            return True
+
+        def get_total(self) -> float:
+            """Calculate total with discounts applied."""
+            subtotal = self.get_subtotal()
+            discount = calculate_discount(subtotal, self.cart.discount_code)
+            return subtotal - discount
+
+        def clear(self) -> None:
+            """Clear all items from cart."""
+            self.cart.items = []
+            self.cart.discount_code = None
+
+  pricing.py: |
+    """Pricing and discount calculations."""
+
+    DISCOUNT_CODES = {
+        "SAVE10": 0.10,    # 10% off
+        "SAVE20": 0.20,    # 20% off
+        "FLAT50": 50.0,    # $50 off
+    }
+
+
+    def calculate_discount(subtotal: float, code: str = None) -> float:
+        """Calculate discount amount based on code."""
+        if not code or code not in DISCOUNT_CODES:
+            return 0.0
+
+        discount_value = DISCOUNT_CODES[code]
+
+        # BUG 4: FLAT50 should be flat discount, not percentage
+        # Currently treating all codes as percentages
+        return subtotal * discount_value
+
+
+    def apply_bulk_discount(subtotal: float, item_count: int) -> float:
+        """Apply bulk discount for large orders."""
+        # BUG 5: Wrong threshold - should be >= 10, not > 10
+        if item_count > 10:
+            return subtotal * 0.05  # 5% bulk discount
+        return 0.0
+
+  main.py: |
+    """Main entry point demonstrating cart functionality."""
+    from models import Product
+    from cart_service import CartService
+
+
+    def run_demo():
+        """Run a demonstration of the cart."""
+        service = CartService()
+
+        # Create products
+        laptop = Product("P001", "Laptop", 999.99, "electronics")
+        mouse = Product("P002", "Mouse", 29.99, "electronics")
+        keyboard = Product("P003", "Keyboard", 79.99, "electronics")
+
+        # Add items
+        service.add_item(laptop, 1)
+        service.add_item(mouse, 2)
+        service.add_item(keyboard, 1)
+
+        print(f"Cart subtotal: ${service.get_subtotal():.2f}")
+
+        # Apply discount
+        service.apply_discount("SAVE10")
+        print(f"Total with discount: ${service.get_total():.2f}")
+
+        return service
+
+
+    if __name__ == "__main__":
+        run_demo()
+
+reference_solution:
+  models.py: |
+    """Data models for the shopping cart application - FIXED."""
+    from dataclasses import dataclass, field
+    from typing import List, Optional
+
+
+    @dataclass
+    class Product:
+        id: str
+        name: str
+        price: float
+        category: str = "general"
+
+        def __eq__(self, other):
+            if not isinstance(other, Product):
+                return False
+            return self.id == other.id
+
+
+    @dataclass
+    class CartItem:
+        product: Product
+        quantity: int
+
+        @property
+        def subtotal(self) -> float:
+            # FIXED BUG 1: Correct calculation
+            return self.product.price * self.quantity
+
+
+    @dataclass
+    class Cart:
+        items: List[CartItem] = field(default_factory=list)
+        discount_code: Optional[str] = None
+
+        def find_item(self, product_id: str) -> Optional[CartItem]:
+            for item in self.items:
+                if item.product.id == product_id:
+                    return item
+            return None
+
+  cart_service.py: |
+    """Cart service - FIXED."""
+    from models import Cart, CartItem, Product
+    from pricing import calculate_discount
+    from typing import Optional
+
+
+    class CartService:
+        def __init__(self):
+            self.cart = Cart()
+
+        def add_item(self, product: Product, quantity: int = 1) -> bool:
+            if quantity < 1:
+                return False
+
+            existing = self.cart.find_item(product.id)
+
+            if existing:
+                # FIXED BUG 2: Add to existing quantity
+                existing.quantity += quantity
+                return True
+
+            self.cart.items.append(CartItem(product=product, quantity=quantity))
+            return True
+
+        def remove_item(self, product_id: str, quantity: int = 1) -> bool:
+            item = self.cart.find_item(product_id)
+
+            if not item:
+                return False
+
+            # FIXED BUG 3: Use <= for comparison
+            if item.quantity <= quantity:
+                self.cart.items = [i for i in self.cart.items if i.product.id != product_id]
+            else:
+                item.quantity -= quantity
+
+            return True
+
+        def get_subtotal(self) -> float:
+            return sum(item.subtotal for item in self.cart.items)
+
+        def apply_discount(self, code: str) -> bool:
+            self.cart.discount_code = code
+            return True
+
+        def get_total(self) -> float:
+            subtotal = self.get_subtotal()
+            discount = calculate_discount(subtotal, self.cart.discount_code)
+            return subtotal - discount
+
+        def clear(self) -> None:
+            self.cart.items = []
+            self.cart.discount_code = None
+
+  pricing.py: |
+    """Pricing - FIXED."""
+
+    DISCOUNT_CODES = {
+        "SAVE10": ("percent", 0.10),
+        "SAVE20": ("percent", 0.20),
+        "FLAT50": ("flat", 50.0),
+    }
+
+
+    def calculate_discount(subtotal: float, code: str = None) -> float:
+        if not code or code not in DISCOUNT_CODES:
+            return 0.0
+
+        discount_type, discount_value = DISCOUNT_CODES[code]
+
+        # FIXED BUG 4: Handle flat vs percentage discounts
+        if discount_type == "flat":
+            return min(discount_value, subtotal)
+        return subtotal * discount_value
+
+
+    def apply_bulk_discount(subtotal: float, item_count: int) -> float:
+        # FIXED BUG 5: Use >= 10
+        if item_count >= 10:
+            return subtotal * 0.05
+        return 0.0
+
+  main.py: |
+    """Main entry point."""
+    from models import Product
+    from cart_service import CartService
+
+
+    def run_demo():
+        service = CartService()
+        laptop = Product("P001", "Laptop", 999.99, "electronics")
+        mouse = Product("P002", "Mouse", 29.99, "electronics")
+        keyboard = Product("P003", "Keyboard", 79.99, "electronics")
+
+        service.add_item(laptop, 1)
+        service.add_item(mouse, 2)
+        service.add_item(keyboard, 1)
+
+        print(f"Cart subtotal: ${service.get_subtotal():.2f}")
+        service.apply_discount("SAVE10")
+        print(f"Total with discount: ${service.get_total():.2f}")
+
+        return service
+
+
+    if __name__ == "__main__":
+        run_demo()
+
+public_tests:
+  - test_id: "subtotal_calculation"
+    name: "CartItem subtotal calculates correctly"
+    input_data:
+      code: |
+        from models import Product, CartItem
+        product = Product("P001", "Test", 10.0)
+        item = CartItem(product=product, quantity=3)
+        if item.subtotal == 30.0:
+            print("PASS")
+        else:
+            print(f"FAIL: Expected 30.0, got {item.subtotal}")
+    expected_output: "PASS"
+    weight: 2.0
+
+  - test_id: "add_item_accumulates"
+    name: "Adding same item increases quantity"
+    input_data:
+      code: |
+        from models import Product
+        from cart_service import CartService
+
+        service = CartService()
+        product = Product("P001", "Test", 10.0)
+        service.add_item(product, 2)
+        service.add_item(product, 3)
+
+        item = service.cart.find_item("P001")
+        if item and item.quantity == 5:
+            print("PASS")
+        else:
+            print(f"FAIL: Expected quantity 5, got {item.quantity if item else 'None'}")
+    expected_output: "PASS"
+    weight: 2.0
+
+hidden_tests:
+  - test_id: "remove_equal_quantity"
+    name: "Removing equal quantity removes item"
+    input_data:
+      code: |
+        from models import Product
+        from cart_service import CartService
+
+        service = CartService()
+        product = Product("P001", "Test", 10.0)
+        service.add_item(product, 2)
+        service.remove_item("P001", 2)
+
+        if service.cart.find_item("P001") is None:
+            print("PASS")
+        else:
+            print("FAIL: Item should be removed")
+    expected_output: "PASS"
+    weight: 2.0
+    is_hidden: true
+
+  - test_id: "flat_discount"
+    name: "FLAT50 gives $50 off, not 50%"
+    input_data:
+      code: |
+        from pricing import calculate_discount
+        # For $200 subtotal, FLAT50 should give $50 off, not $100
+        discount = calculate_discount(200.0, "FLAT50")
+        if abs(discount - 50.0) < 0.01:
+            print("PASS")
+        else:
+            print(f"FAIL: Expected 50.0 discount, got {discount}")
+    expected_output: "PASS"
+    weight: 2.5
+    is_hidden: true
+
+  - test_id: "bulk_discount_threshold"
+    name: "Bulk discount at exactly 10 items"
+    input_data:
+      code: |
+        from pricing import apply_bulk_discount
+        # Exactly 10 items should get bulk discount
+        discount = apply_bulk_discount(100.0, 10)
+        if discount > 0:
+            print("PASS")
+        else:
+            print("FAIL: Should get bulk discount at 10 items")
+    expected_output: "PASS"
+    weight: 2.0
+    is_hidden: true
+
+  - test_id: "full_cart_total"
+    name: "Complete cart total is correct"
+    input_data:
+      code: |
+        from models import Product
+        from cart_service import CartService
+
+        service = CartService()
+        p1 = Product("P001", "Laptop", 1000.0)
+        p2 = Product("P002", "Mouse", 50.0)
+
+        service.add_item(p1, 1)
+        service.add_item(p2, 2)
+
+        # Subtotal should be: 1000 + (50*2) = 1100
+        subtotal = service.get_subtotal()
+        if abs(subtotal - 1100.0) < 0.01:
+            service.apply_discount("SAVE10")
+            # 10% off 1100 = 990
+            total = service.get_total()
+            if abs(total - 990.0) < 0.01:
+                print("PASS")
+            else:
+                print(f"FAIL: Expected total 990.0, got {total}")
+        else:
+            print(f"FAIL: Expected subtotal 1100.0, got {subtotal}")
+    expected_output: "PASS"
+    weight: 3.0
+    is_hidden: true
+
+evaluation_criteria:
+  - "All 5 bugs identified and fixed"
+  - "Bug 1: CartItem subtotal multiplication fixed"
+  - "Bug 2: Add item accumulates quantity"
+  - "Bug 3: Remove item threshold corrected"
+  - "Bug 4: Flat discount handled separately"
+  - "Bug 5: Bulk discount threshold fixed"
+  - "Existing API preserved"
+
+scoring_rubric:
+  bug_identification: 30.0
+  bug_fixes: 50.0
+  code_preservation: 10.0
+  testing: 10.0
+
+max_score: 100.0
+time_limit_seconds: 180
+memory_limit_mb: 128
+allowed_languages:
+  - python
+
+tags:
+  - debugging
+  - multi-file
+  - bug-fix
+  - code-analysis
+  - planning
+
+author: "AlphaEvolve Team"
+version: "1.0.0"
+source: "Original"
