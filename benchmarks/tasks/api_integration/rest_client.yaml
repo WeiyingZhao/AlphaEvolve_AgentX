@@ -1,0 +1,397 @@
+# Task: Build a REST API Client with Error Handling
+# Category: API Integration
+# Difficulty: Medium-Hard
+
+task_id: "api_rest_client"
+name: "Robust REST API Client"
+category: "api_integration"
+difficulty: "medium"
+description: |
+  Implement a robust REST API client that handles authentication, pagination,
+  rate limiting, and error recovery. This task tests the ability to work with
+  external APIs and handle real-world integration challenges.
+
+detailed_instructions: |
+  Build a REST API client class that:
+
+  1. AUTHENTICATION
+  - Support API key authentication via headers
+  - Handle token refresh when authentication fails
+
+  2. REQUEST HANDLING
+  - Implement GET, POST, PUT, DELETE methods
+  - Handle pagination (follow 'next' links)
+  - Implement retry logic with exponential backoff
+
+  3. ERROR HANDLING
+  - Handle HTTP errors (4xx, 5xx) gracefully
+  - Implement timeout handling
+  - Return structured error responses
+
+  4. RATE LIMITING
+  - Respect rate limit headers (X-RateLimit-Remaining)
+  - Wait when rate limited (429 status)
+
+  Your APIClient class should:
+  - Accept base_url and api_key in constructor
+  - Have methods: get(), post(), put(), delete(), get_paginated()
+  - Return (success: bool, data: dict, error: str) tuples
+
+starter_code:
+  solution.py: |
+    """
+    REST API Client with robust error handling.
+
+    Implement a production-ready API client that handles common integration challenges.
+    """
+    import time
+    from typing import Dict, Any, Tuple, Optional, List
+    from urllib.parse import urljoin
+
+
+    class APIError(Exception):
+        """Custom exception for API errors."""
+        def __init__(self, status_code: int, message: str):
+            self.status_code = status_code
+            self.message = message
+            super().__init__(f"API Error {status_code}: {message}")
+
+
+    class APIClient:
+        """Robust REST API client with error handling and retry logic."""
+
+        def __init__(
+            self,
+            base_url: str,
+            api_key: str,
+            timeout: int = 30,
+            max_retries: int = 3,
+        ):
+            self.base_url = base_url.rstrip('/')
+            self.api_key = api_key
+            self.timeout = timeout
+            self.max_retries = max_retries
+            self.session = None
+
+        def _get_headers(self) -> Dict[str, str]:
+            """Get default headers with authentication."""
+            # TODO: Implement authentication headers
+            pass
+
+        def _handle_response(self, response) -> Tuple[bool, Dict, str]:
+            """Process response and extract data or error."""
+            # TODO: Implement response handling
+            pass
+
+        def _should_retry(self, status_code: int, attempt: int) -> bool:
+            """Determine if request should be retried."""
+            # TODO: Implement retry logic
+            pass
+
+        def get(self, endpoint: str, params: Optional[Dict] = None) -> Tuple[bool, Dict, str]:
+            """Perform GET request with retry logic."""
+            # TODO: Implement GET request
+            pass
+
+        def post(self, endpoint: str, data: Dict) -> Tuple[bool, Dict, str]:
+            """Perform POST request."""
+            # TODO: Implement POST request
+            pass
+
+        def put(self, endpoint: str, data: Dict) -> Tuple[bool, Dict, str]:
+            """Perform PUT request."""
+            # TODO: Implement PUT request
+            pass
+
+        def delete(self, endpoint: str) -> Tuple[bool, Dict, str]:
+            """Perform DELETE request."""
+            # TODO: Implement DELETE request
+            pass
+
+        def get_paginated(self, endpoint: str, max_pages: int = 10) -> Tuple[bool, List[Dict], str]:
+            """Fetch all pages of a paginated endpoint."""
+            # TODO: Implement paginated fetching
+            pass
+
+
+    # Mock HTTP library for testing (simulates requests)
+    class MockResponse:
+        def __init__(self, status_code: int, json_data: Dict, headers: Dict = None):
+            self.status_code = status_code
+            self._json = json_data
+            self.headers = headers or {}
+
+        def json(self):
+            return self._json
+
+
+    def mock_request(method: str, url: str, **kwargs) -> MockResponse:
+        """Mock HTTP request handler for testing."""
+        # Simulate different scenarios based on URL patterns
+        if "error500" in url:
+            return MockResponse(500, {"error": "Internal Server Error"})
+        if "error429" in url:
+            return MockResponse(429, {"error": "Rate Limited"}, {"Retry-After": "1"})
+        if "unauthorized" in url:
+            return MockResponse(401, {"error": "Unauthorized"})
+        if "paginated" in url:
+            page = kwargs.get("params", {}).get("page", 1)
+            if page < 3:
+                return MockResponse(200, {
+                    "data": [{"id": page}],
+                    "next": f"{url}?page={page + 1}"
+                })
+            return MockResponse(200, {"data": [{"id": page}], "next": None})
+
+        return MockResponse(200, {"data": "success", "id": 1})
+
+reference_solution:
+  solution.py: |
+    """Reference implementation of REST API client."""
+    import time
+    from typing import Dict, Any, Tuple, Optional, List
+
+
+    class APIError(Exception):
+        def __init__(self, status_code: int, message: str):
+            self.status_code = status_code
+            self.message = message
+            super().__init__(f"API Error {status_code}: {message}")
+
+
+    class APIClient:
+        def __init__(
+            self,
+            base_url: str,
+            api_key: str,
+            timeout: int = 30,
+            max_retries: int = 3,
+        ):
+            self.base_url = base_url.rstrip('/')
+            self.api_key = api_key
+            self.timeout = timeout
+            self.max_retries = max_retries
+
+        def _get_headers(self) -> Dict[str, str]:
+            return {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            }
+
+        def _handle_response(self, response) -> Tuple[bool, Dict, str]:
+            if 200 <= response.status_code < 300:
+                return True, response.json(), ""
+            return False, {}, f"HTTP {response.status_code}: {response.json().get('error', 'Unknown error')}"
+
+        def _should_retry(self, status_code: int, attempt: int) -> bool:
+            if attempt >= self.max_retries:
+                return False
+            return status_code in (429, 500, 502, 503, 504)
+
+        def _make_request(self, method: str, endpoint: str, **kwargs) -> Tuple[bool, Dict, str]:
+            url = f"{self.base_url}/{endpoint.lstrip('/')}"
+            headers = self._get_headers()
+
+            for attempt in range(self.max_retries + 1):
+                try:
+                    response = mock_request(method, url, headers=headers, **kwargs)
+
+                    if response.status_code == 429:
+                        retry_after = int(response.headers.get("Retry-After", 1))
+                        time.sleep(min(retry_after, 5))
+                        continue
+
+                    if self._should_retry(response.status_code, attempt):
+                        time.sleep(2 ** attempt * 0.1)
+                        continue
+
+                    return self._handle_response(response)
+
+                except Exception as e:
+                    if attempt == self.max_retries:
+                        return False, {}, str(e)
+                    time.sleep(2 ** attempt * 0.1)
+
+            return False, {}, "Max retries exceeded"
+
+        def get(self, endpoint: str, params: Optional[Dict] = None) -> Tuple[bool, Dict, str]:
+            return self._make_request("GET", endpoint, params=params or {})
+
+        def post(self, endpoint: str, data: Dict) -> Tuple[bool, Dict, str]:
+            return self._make_request("POST", endpoint, json=data)
+
+        def put(self, endpoint: str, data: Dict) -> Tuple[bool, Dict, str]:
+            return self._make_request("PUT", endpoint, json=data)
+
+        def delete(self, endpoint: str) -> Tuple[bool, Dict, str]:
+            return self._make_request("DELETE", endpoint)
+
+        def get_paginated(self, endpoint: str, max_pages: int = 10) -> Tuple[bool, List[Dict], str]:
+            all_data = []
+            current_page = 1
+
+            while current_page <= max_pages:
+                success, data, error = self.get(endpoint, params={"page": current_page})
+
+                if not success:
+                    return False, all_data, error
+
+                all_data.extend(data.get("data", []))
+
+                if not data.get("next"):
+                    break
+
+                current_page += 1
+
+            return True, all_data, ""
+
+
+    class MockResponse:
+        def __init__(self, status_code: int, json_data: Dict, headers: Dict = None):
+            self.status_code = status_code
+            self._json = json_data
+            self.headers = headers or {}
+
+        def json(self):
+            return self._json
+
+
+    def mock_request(method: str, url: str, **kwargs) -> MockResponse:
+        if "error500" in url:
+            return MockResponse(500, {"error": "Internal Server Error"})
+        if "error429" in url:
+            return MockResponse(429, {"error": "Rate Limited"}, {"Retry-After": "1"})
+        if "unauthorized" in url:
+            return MockResponse(401, {"error": "Unauthorized"})
+        if "paginated" in url:
+            page = kwargs.get("params", {}).get("page", 1)
+            if page < 3:
+                return MockResponse(200, {"data": [{"id": page}], "next": f"{url}?page={page + 1}"})
+            return MockResponse(200, {"data": [{"id": page}], "next": None})
+        return MockResponse(200, {"data": "success", "id": 1})
+
+public_tests:
+  - test_id: "basic_get"
+    name: "Basic GET request works"
+    input_data:
+      code: |
+        from solution import APIClient
+        client = APIClient("https://api.example.com", "test-key")
+        success, data, error = client.get("/users")
+        if success and "data" in data:
+            print("PASS")
+        else:
+            print(f"FAIL: {error}")
+    expected_output: "PASS"
+    weight: 1.5
+
+  - test_id: "auth_headers"
+    name: "Authentication headers are set"
+    input_data:
+      code: |
+        from solution import APIClient
+        client = APIClient("https://api.example.com", "my-secret-key")
+        headers = client._get_headers()
+        if "Authorization" in headers and "my-secret-key" in headers["Authorization"]:
+            print("PASS")
+        else:
+            print("FAIL: Auth header not set correctly")
+    expected_output: "PASS"
+    weight: 1.5
+
+  - test_id: "paginated_fetch"
+    name: "Paginated endpoint fetches all pages"
+    input_data:
+      code: |
+        from solution import APIClient
+        client = APIClient("https://api.example.com", "test-key")
+        success, data, error = client.get_paginated("/paginated")
+        if success and len(data) == 3:  # 3 pages of data
+            print("PASS")
+        else:
+            print(f"FAIL: Expected 3 items, got {len(data)}")
+    expected_output: "PASS"
+    weight: 2.0
+
+hidden_tests:
+  - test_id: "error_handling"
+    name: "Handles 401 errors correctly"
+    input_data:
+      code: |
+        from solution import APIClient
+        client = APIClient("https://api.example.com", "test-key")
+        success, data, error = client.get("/unauthorized")
+        if not success and "401" in error:
+            print("PASS")
+        else:
+            print("FAIL: Should have handled 401 error")
+    expected_output: "PASS"
+    weight: 2.0
+    is_hidden: true
+
+  - test_id: "retry_logic"
+    name: "Implements retry on 500 errors"
+    input_data:
+      code: |
+        from solution import APIClient
+        client = APIClient("https://api.example.com", "test-key", max_retries=2)
+        # The mock returns 500 for error500, should retry
+        success, data, error = client.get("/error500")
+        # Should fail but have retried
+        if not success and "500" in error:
+            print("PASS")
+        else:
+            print("FAIL: Should retry on 500 errors")
+    expected_output: "PASS"
+    weight: 2.5
+    is_hidden: true
+
+  - test_id: "all_methods"
+    name: "All HTTP methods implemented"
+    input_data:
+      code: |
+        from solution import APIClient
+        client = APIClient("https://api.example.com", "test-key")
+        get_ok, _, _ = client.get("/test")
+        post_ok, _, _ = client.post("/test", {"name": "test"})
+        put_ok, _, _ = client.put("/test", {"name": "updated"})
+        delete_ok, _, _ = client.delete("/test")
+        if all([get_ok, post_ok, put_ok, delete_ok]):
+            print("PASS")
+        else:
+            print("FAIL: Not all methods work")
+    expected_output: "PASS"
+    weight: 2.0
+    is_hidden: true
+
+evaluation_criteria:
+  - "Correct authentication header setup"
+  - "All HTTP methods implemented (GET, POST, PUT, DELETE)"
+  - "Pagination handling works correctly"
+  - "Retry logic with exponential backoff"
+  - "Proper error handling and response parsing"
+  - "Rate limiting awareness"
+
+scoring_rubric:
+  correctness: 45.0
+  error_handling: 25.0
+  api_design: 15.0
+  code_quality: 15.0
+
+max_score: 100.0
+time_limit_seconds: 60
+memory_limit_mb: 128
+allowed_languages:
+  - python
+
+tags:
+  - api-integration
+  - http
+  - error-handling
+  - retry-logic
+  - pagination
+
+author: "AlphaEvolve Team"
+version: "1.0.0"
+source: "Original"

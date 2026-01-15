@@ -34,6 +34,8 @@ class TaskCategory(str, Enum):
     API_DESIGN = "api_design"
     DEBUGGING = "debugging"
     ML_ENGINEERING = "ml_engineering"
+    MULTI_STEP_PLANNING = "multi_step_planning"
+    API_INTEGRATION = "api_integration"
 
 
 class TaskDifficulty(str, Enum):

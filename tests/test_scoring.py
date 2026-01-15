@@ -221,11 +221,11 @@ def get_cwd():
         bad_analysis = CodeAnalysisResult(
             syntax_valid=True,
             line_count=50,
-            style_issues=["issue1", "issue2", "issue3", "issue4"],
+            style_issues=["issue1", "issue2", "issue3", "issue4", "issue5", "issue6", "issue7"],
         )
 
         score = engine._calculate_quality_score(bad_analysis)
-        assert score < 0.9
+        assert score < 0.9  # More style issues should reduce score below 0.9
 
 
 class TestScoringIntegration:

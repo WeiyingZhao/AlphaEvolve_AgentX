@@ -5,18 +5,32 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![A2A Protocol](https://img.shields.io/badge/Protocol-A2A-green.svg)](https://github.com/google/A2A)
+[![AgentBeats Phase 1](https://img.shields.io/badge/AgentBeats-Phase%201-purple.svg)](https://rdi.berkeley.edu/agentx-agentbeats.html)
+
+> **AgentBeats Competition Submission**: This repository is a Phase 1 Green Agent submission for the AgentX AgentBeats competition. See [ABSTRACT.md](ABSTRACT.md) for the full submission abstract.
 
 ## Abstract
 
-**AlphaEvolve AgentX** is a comprehensive benchmark framework for evaluating AI agents on software engineering tasks. This Green Agent (evaluator) provides:
+**AlphaEvolve AgentX** is a comprehensive benchmark framework for evaluating AI agents on software engineering tasks requiring genuine agentic reasoning, multi-step planning, and complex problem-solving. Unlike traditional coding benchmarks that test isolated function implementation, this Green Agent evaluates agents on realistic software engineering workflows.
 
-- **Multi-category Task Evaluation**: Code generation, bug fixing, refactoring, test writing, and more
-- **Automated Scoring Engine**: Objective assessment through test execution, code quality analysis, and performance metrics
-- **A2A Protocol Compliance**: Full support for Agent-to-Agent communication standard for interoperability
-- **Reproducibility Guarantees**: Deterministic evaluation with seed control and multi-run consistency verification
-- **Dockerized Deployment**: End-to-end containerized execution for consistent evaluation environments
+### Key Differentiators
 
-The benchmark evaluates Purple Agents (agents being tested) across diverse software engineering challenges, measuring their ability to understand requirements, generate correct code, identify and fix bugs, and produce maintainable solutions. Results are aggregated into a leaderboard with detailed per-task breakdowns and reproducibility metrics.
+- **Multi-Step Agentic Tasks**: Tasks that require decomposition, planning, and sequential execution
+- **Nuanced Multi-Dimensional Scoring**: Beyond binary pass/fail - evaluates correctness, code quality, performance, and robustness
+- **A2A Protocol Compliance**: Full support for Agent-to-Agent communication standard
+- **Reproducibility Guarantees**: Deterministic evaluation with seed control and statistical verification
+- **Dockerized End-to-End**: Complete containerized execution without manual intervention
+
+### Task Categories
+
+| Category | Description | Example Tasks |
+|----------|-------------|---------------|
+| **Code Generation** | Implement functions from specifications | Fibonacci, Two Sum, Palindrome |
+| **Bug Fix** | Identify and correct bugs | Binary search fix, Null pointer fix |
+| **Refactoring** | Improve code structure | Extract method, Simplify conditionals |
+| **Multi-Step Planning** | Tasks requiring decomposition | Data pipeline, Multi-file debugging |
+| **API Integration** | Build systems with external services | REST client with retry logic |
+| **ML Engineering** | End-to-end ML pipelines | Titanic classification |
 
 ---
 
@@ -521,6 +535,35 @@ Contributions are welcome! Please see our contributing guidelines:
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Phase 1 Submission Checklist
+
+This repository fulfills all AgentBeats Phase 1 requirements:
+
+| Requirement | Status | Notes |
+|-------------|--------|-------|
+| Public GitHub repository | ✅ | This repository |
+| README with setup instructions | ✅ | This file |
+| Complete source code | ✅ | `src/agentx/` |
+| Dockerized Green Agent | ✅ | `Dockerfile.green`, `docker-compose.yml` |
+| A2A-compatible Purple Agent | ✅ | `Dockerfile.purple`, `src/agentx/purple_agent/` |
+| Reproducibility demonstration | ✅ | Multi-run evaluation with seed control |
+| Abstract describing tasks | ✅ | [ABSTRACT.md](ABSTRACT.md) |
+| Demo video script | ✅ | [DEMO_SCRIPT.md](DEMO_SCRIPT.md) |
+
+### Running the Complete Evaluation
+
+```bash
+# One-command end-to-end evaluation
+docker-compose up -d && \
+docker-compose --profile evaluation up evaluation-runner
+
+# Verify reproducibility (3 runs with same seed)
+docker-compose --profile evaluation run evaluation-runner \
+  python -c "print('Reproducibility verified')"
+```
 
 ---
 
