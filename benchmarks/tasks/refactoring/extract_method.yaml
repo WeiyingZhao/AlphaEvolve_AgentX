@@ -1,0 +1,259 @@
+# Task: Refactor Long Method
+# Category: Refactoring
+# Difficulty: Medium
+
+task_id: "refactor_extract_method"
+name: "Extract Method Refactoring"
+category: "refactoring"
+difficulty: "medium"
+description: |
+  Refactor the provided code by extracting methods to improve readability
+  and reduce code duplication. The current implementation has a long method
+  with repeated logic that should be broken down into smaller, reusable functions.
+
+detailed_instructions: |
+  The `process_orders` function is too long and has duplicated logic.
+  Refactor it to:
+  1. Extract repeated validation logic into a separate function
+  2. Extract the discount calculation into a separate function
+  3. Extract the summary calculation into a separate function
+  4. Keep the main function as an orchestrator
+  5. Ensure all tests still pass after refactoring
+
+context_files:
+  solution.py: |
+    def process_orders(orders):
+        """Process a list of orders and return summary."""
+        results = []
+        total_revenue = 0
+        total_items = 0
+
+        for order in orders:
+            # Validate order (repeated pattern)
+            if order is None:
+                continue
+            if 'items' not in order:
+                continue
+            if 'customer_id' not in order:
+                continue
+            if len(order['items']) == 0:
+                continue
+
+            order_total = 0
+            order_items = 0
+
+            for item in order['items']:
+                # Validate item (repeated pattern)
+                if item is None:
+                    continue
+                if 'price' not in item:
+                    continue
+                if 'quantity' not in item:
+                    continue
+                if item['price'] < 0:
+                    continue
+                if item['quantity'] < 0:
+                    continue
+
+                item_total = item['price'] * item['quantity']
+                order_total += item_total
+                order_items += item['quantity']
+
+            # Calculate discount (complex logic that should be extracted)
+            discount = 0
+            if order_total > 1000:
+                discount = order_total * 0.20
+            elif order_total > 500:
+                discount = order_total * 0.10
+            elif order_total > 100:
+                discount = order_total * 0.05
+
+            final_total = order_total - discount
+
+            results.append({
+                'customer_id': order['customer_id'],
+                'order_total': order_total,
+                'discount': discount,
+                'final_total': final_total,
+                'item_count': order_items,
+            })
+
+            total_revenue += final_total
+            total_items += order_items
+
+        return {
+            'orders': results,
+            'total_revenue': total_revenue,
+            'total_items': total_items,
+            'order_count': len(results),
+        }
+
+reference_solution:
+  solution.py: |
+    def is_valid_order(order):
+        """Validate an order has required fields."""
+        if order is None:
+            return False
+        if 'items' not in order or 'customer_id' not in order:
+            return False
+        if len(order.get('items', [])) == 0:
+            return False
+        return True
+
+    def is_valid_item(item):
+        """Validate an item has required fields and valid values."""
+        if item is None:
+            return False
+        if 'price' not in item or 'quantity' not in item:
+            return False
+        if item['price'] < 0 or item['quantity'] < 0:
+            return False
+        return True
+
+    def calculate_discount(order_total):
+        """Calculate discount based on order total."""
+        if order_total > 1000:
+            return order_total * 0.20
+        elif order_total > 500:
+            return order_total * 0.10
+        elif order_total > 100:
+            return order_total * 0.05
+        return 0
+
+    def process_order_items(items):
+        """Process items in an order and return totals."""
+        order_total = 0
+        order_items = 0
+        for item in items:
+            if not is_valid_item(item):
+                continue
+            item_total = item['price'] * item['quantity']
+            order_total += item_total
+            order_items += item['quantity']
+        return order_total, order_items
+
+    def process_orders(orders):
+        """Process a list of orders and return summary."""
+        results = []
+        total_revenue = 0
+        total_items = 0
+
+        for order in orders:
+            if not is_valid_order(order):
+                continue
+
+            order_total, order_items = process_order_items(order['items'])
+            discount = calculate_discount(order_total)
+            final_total = order_total - discount
+
+            results.append({
+                'customer_id': order['customer_id'],
+                'order_total': order_total,
+                'discount': discount,
+                'final_total': final_total,
+                'item_count': order_items,
+            })
+
+            total_revenue += final_total
+            total_items += order_items
+
+        return {
+            'orders': results,
+            'total_revenue': total_revenue,
+            'total_items': total_items,
+            'order_count': len(results),
+        }
+
+public_tests:
+  - test_id: "refactor_basic"
+    name: "Basic order processing"
+    input_data:
+      function: "process_orders"
+      args:
+        - - customer_id: "C001"
+            items:
+              - price: 100
+                quantity: 2
+    expected_output:
+      orders:
+        - customer_id: "C001"
+          order_total: 200
+          discount: 10.0
+          final_total: 190.0
+          item_count: 2
+      total_revenue: 190.0
+      total_items: 2
+      order_count: 1
+    weight: 2.0
+
+  - test_id: "refactor_empty"
+    name: "Empty orders list"
+    input_data:
+      function: "process_orders"
+      args:
+        - []
+    expected_output:
+      orders: []
+      total_revenue: 0
+      total_items: 0
+      order_count: 0
+    weight: 1.0
+
+hidden_tests:
+  - test_id: "refactor_discount_tiers"
+    name: "Multiple discount tiers"
+    input_data:
+      function: "process_orders"
+      args:
+        - - customer_id: "C001"
+            items:
+              - price: 600
+                quantity: 1
+          - customer_id: "C002"
+            items:
+              - price: 1200
+                quantity: 1
+    expected_output:
+      orders:
+        - customer_id: "C001"
+          order_total: 600
+          discount: 60.0
+          final_total: 540.0
+          item_count: 1
+        - customer_id: "C002"
+          order_total: 1200
+          discount: 240.0
+          final_total: 960.0
+          item_count: 1
+      total_revenue: 1500.0
+      total_items: 2
+      order_count: 2
+    weight: 3.0
+    is_hidden: true
+
+evaluation_criteria:
+  - "Code is properly decomposed into smaller functions"
+  - "No logic duplication"
+  - "All tests pass after refactoring"
+  - "Functions have clear responsibilities"
+
+scoring_rubric:
+  correctness: 40.0
+  code_structure: 35.0
+  code_quality: 25.0
+
+max_score: 100.0
+time_limit_seconds: 120
+memory_limit_mb: 256
+allowed_languages:
+  - python
+
+tags:
+  - refactoring
+  - clean-code
+  - extract-method
+  - intermediate
+
+author: "AlphaEvolve Team"
+version: "1.0.0"
+source: "Original"

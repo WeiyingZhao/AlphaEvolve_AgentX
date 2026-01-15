@@ -1,0 +1,123 @@
+# Task: Implement Fibonacci Sequence
+# Category: Code Generation
+# Difficulty: Easy
+
+task_id: "code_gen_fibonacci"
+name: "Fibonacci Sequence Generator"
+category: "code_generation"
+difficulty: "easy"
+description: |
+  Implement a function `fibonacci(n)` that returns the nth Fibonacci number.
+  The Fibonacci sequence starts with 0, 1, and each subsequent number is the
+  sum of the two preceding ones: 0, 1, 1, 2, 3, 5, 8, 13, 21, ...
+
+detailed_instructions: |
+  Write a Python function called `fibonacci` that:
+  1. Takes a single integer argument `n` (0-indexed)
+  2. Returns the nth Fibonacci number
+  3. Handles edge cases: n=0 should return 0, n=1 should return 1
+  4. Should work efficiently for n up to at least 40
+
+  Example:
+  - fibonacci(0) -> 0
+  - fibonacci(1) -> 1
+  - fibonacci(10) -> 55
+
+starter_code:
+  solution.py: |
+    def fibonacci(n):
+        """
+        Return the nth Fibonacci number.
+
+        Args:
+            n: The index in the Fibonacci sequence (0-indexed)
+
+        Returns:
+            The nth Fibonacci number
+        """
+        # TODO: Implement this function
+        pass
+
+reference_solution:
+  solution.py: |
+    def fibonacci(n):
+        """Return the nth Fibonacci number."""
+        if n <= 0:
+            return 0
+        if n == 1:
+            return 1
+
+        a, b = 0, 1
+        for _ in range(2, n + 1):
+            a, b = b, a + b
+        return b
+
+public_tests:
+  - test_id: "fib_base_0"
+    name: "Fibonacci base case n=0"
+    input_data:
+      function: "fibonacci"
+      args: [0]
+    expected_output: 0
+    weight: 1.0
+
+  - test_id: "fib_base_1"
+    name: "Fibonacci base case n=1"
+    input_data:
+      function: "fibonacci"
+      args: [1]
+    expected_output: 1
+    weight: 1.0
+
+  - test_id: "fib_small"
+    name: "Fibonacci small number n=10"
+    input_data:
+      function: "fibonacci"
+      args: [10]
+    expected_output: 55
+    weight: 1.5
+
+hidden_tests:
+  - test_id: "fib_medium"
+    name: "Fibonacci medium number n=20"
+    input_data:
+      function: "fibonacci"
+      args: [20]
+    expected_output: 6765
+    weight: 2.0
+    is_hidden: true
+
+  - test_id: "fib_large"
+    name: "Fibonacci larger number n=35"
+    input_data:
+      function: "fibonacci"
+      args: [35]
+    expected_output: 9227465
+    weight: 2.5
+    is_hidden: true
+
+evaluation_criteria:
+  - "Function returns correct values for base cases"
+  - "Function handles larger inputs efficiently"
+  - "Code is readable and well-structured"
+
+scoring_rubric:
+  correctness: 50.0
+  efficiency: 30.0
+  code_quality: 20.0
+
+max_score: 100.0
+time_limit_seconds: 60
+memory_limit_mb: 256
+allowed_languages:
+  - python
+
+tags:
+  - algorithms
+  - recursion
+  - dynamic-programming
+  - beginner
+
+author: "AlphaEvolve Team"
+version: "1.0.0"
+source: "Original"

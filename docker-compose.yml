@@ -1,0 +1,135 @@
+# Docker Compose configuration for AlphaEvolve AgentX
+# This file orchestrates the Green Agent (evaluator) and Purple Agent (baseline)
+
+version: "3.9"
+
+services:
+  # Green Agent - Evaluator
+  green-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.green
+    container_name: alphaevolve-green-agent
+    ports:
+      - "8000:8000"
+    environment:
+      - AGENT_NAME=AlphaEvolve-Green-Agent
+      - LOG_LEVEL=INFO
+      - PYTHONPATH=/app/src
+    volumes:
+      - ./benchmarks:/app/benchmarks:ro
+      - ./results:/app/results
+      - ./config:/app/config:ro
+    networks:
+      - agent-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # Purple Agent - Baseline (agent being evaluated)
+  purple-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.purple
+    container_name: alphaevolve-purple-agent
+    ports:
+      - "8001:8001"
+    environment:
+      - AGENT_NAME=AlphaEvolve-Purple-Agent-Baseline
+      - LOG_LEVEL=INFO
+      - PYTHONPATH=/app/src
+    networks:
+      - agent-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    depends_on:
+      green-agent:
+        condition: service_healthy
+
+  # Evaluation Runner - Orchestrates evaluation runs
+  evaluation-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.green
+    container_name: alphaevolve-evaluation-runner
+    environment:
+      - GREEN_AGENT_URL=http://green-agent:8000
+      - PURPLE_AGENT_URL=http://purple-agent:8001
+      - NUM_RUNS=3
+      - PYTHONPATH=/app/src
+    volumes:
+      - ./results:/app/results
+    networks:
+      - agent-network
+    depends_on:
+      green-agent:
+        condition: service_healthy
+      purple-agent:
+        condition: service_healthy
+    command: >
+      python -c "
+      import asyncio
+      import os
+      import httpx
+      import json
+      from datetime import datetime
+
+      async def run_evaluation():
+          green_url = os.environ.get('GREEN_AGENT_URL', 'http://green-agent:8000')
+          purple_url = os.environ.get('PURPLE_AGENT_URL', 'http://purple-agent:8001')
+          num_runs = int(os.environ.get('NUM_RUNS', 3))
+
+          print(f'Starting evaluation with {num_runs} runs...')
+          print(f'Green Agent: {green_url}')
+          print(f'Purple Agent: {purple_url}')
+
+          async with httpx.AsyncClient(timeout=300) as client:
+              # Trigger evaluation
+              response = await client.post(
+                  f'{green_url}/evaluate',
+                  json={
+                      'purple_agent_endpoint': purple_url,
+                      'num_runs': num_runs,
+                  }
+              )
+
+              result = response.json()
+              print(f'Evaluation completed: {json.dumps(result, indent=2)}')
+
+              # Export results
+              export_response = await client.post(
+                  f'{green_url}/export',
+                  params={'output_path': '/app/results/evaluation_results.json'}
+              )
+              print(f'Results exported: {export_response.json()}')
+
+              # Get leaderboard
+              leaderboard = await client.get(f'{green_url}/leaderboard')
+              print(f'Leaderboard: {json.dumps(leaderboard.json(), indent=2)}')
+
+              # Verify reproducibility
+              reproducibility = await client.get(f'{green_url}/reproducibility')
+              print(f'Reproducibility: {json.dumps(reproducibility.json(), indent=2)}')
+
+      asyncio.run(run_evaluation())
+      "
+    profiles:
+      - evaluation
+
+networks:
+  agent-network:
+    driver: bridge
+    name: alphaevolve-network
+
+volumes:
+  results:
+    driver: local

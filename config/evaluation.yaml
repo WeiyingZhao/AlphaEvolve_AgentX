@@ -1,0 +1,27 @@
+# AlphaEvolve AgentX - Evaluation Configuration
+# This file configures the evaluation harness settings
+
+# Agent Endpoints
+green_agent_endpoint: "http://localhost:8000"
+purple_agent_endpoint: "http://localhost:8001"
+
+# Task Selection (optional - null means all tasks)
+task_ids: null
+task_categories: null
+task_difficulties: null
+
+# Reproducibility Settings
+num_runs: 3                    # Number of evaluation runs for reproducibility verification
+seed: 42                       # Random seed for deterministic evaluation
+deterministic: true            # Enable deterministic mode
+
+# Execution Settings
+timeout_seconds: 300           # Maximum time per task
+max_concurrent_tasks: 1        # Number of concurrent task evaluations
+retry_failed: false            # Retry failed tasks
+max_retries: 3                 # Maximum retry attempts
+
+# Output Settings
+output_directory: "results"    # Directory for evaluation results
+save_intermediate: true        # Save intermediate results during evaluation
+verbose: false                 # Enable verbose logging

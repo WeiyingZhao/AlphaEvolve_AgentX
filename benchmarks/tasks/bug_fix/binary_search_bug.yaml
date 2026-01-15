@@ -1,0 +1,155 @@
+# Task: Fix Binary Search Implementation
+# Category: Bug Fix
+# Difficulty: Medium
+
+task_id: "bug_fix_binary_search"
+name: "Fix Binary Search Bug"
+category: "bug_fix"
+difficulty: "medium"
+description: |
+  The provided binary search implementation has bugs that cause it to fail
+  for certain inputs. Find and fix all the bugs.
+
+detailed_instructions: |
+  The binary_search function should:
+  1. Search for a target value in a sorted array
+  2. Return the index if found, -1 if not found
+  3. Handle empty arrays correctly
+  4. Handle arrays with one element
+  5. Handle cases where target is not in the array
+
+  The current implementation has multiple bugs. Fix them all.
+
+context_files:
+  solution.py: |
+    def binary_search(arr, target):
+        """
+        Search for target in sorted array arr.
+        Return index if found, -1 if not found.
+        """
+        left = 0
+        right = len(arr)  # Bug 1: Should be len(arr) - 1
+
+        while left < right:  # Bug 2: Should be left <= right
+            mid = (left + right) / 2  # Bug 3: Should use // for integer division
+
+            if arr[mid] == target:
+                return mid
+            elif arr[mid] < target:
+                left = mid  # Bug 4: Should be mid + 1
+            else:
+                right = mid  # Bug 5: Should be mid - 1
+
+        return -1
+
+reference_solution:
+  solution.py: |
+    def binary_search(arr, target):
+        """
+        Search for target in sorted array arr.
+        Return index if found, -1 if not found.
+        """
+        if not arr:
+            return -1
+
+        left = 0
+        right = len(arr) - 1
+
+        while left <= right:
+            mid = (left + right) // 2
+
+            if arr[mid] == target:
+                return mid
+            elif arr[mid] < target:
+                left = mid + 1
+            else:
+                right = mid - 1
+
+        return -1
+
+public_tests:
+  - test_id: "bs_found_middle"
+    name: "Target in middle"
+    input_data:
+      function: "binary_search"
+      args: [[1, 2, 3, 4, 5], 3]
+    expected_output: 2
+    weight: 1.0
+
+  - test_id: "bs_found_first"
+    name: "Target at start"
+    input_data:
+      function: "binary_search"
+      args: [[1, 2, 3, 4, 5], 1]
+    expected_output: 0
+    weight: 1.0
+
+  - test_id: "bs_found_last"
+    name: "Target at end"
+    input_data:
+      function: "binary_search"
+      args: [[1, 2, 3, 4, 5], 5]
+    expected_output: 4
+    weight: 1.0
+
+  - test_id: "bs_not_found"
+    name: "Target not in array"
+    input_data:
+      function: "binary_search"
+      args: [[1, 2, 3, 4, 5], 6]
+    expected_output: -1
+    weight: 1.0
+
+hidden_tests:
+  - test_id: "bs_empty"
+    name: "Empty array"
+    input_data:
+      function: "binary_search"
+      args: [[], 1]
+    expected_output: -1
+    weight: 2.0
+    is_hidden: true
+
+  - test_id: "bs_single_found"
+    name: "Single element found"
+    input_data:
+      function: "binary_search"
+      args: [[5], 5]
+    expected_output: 0
+    weight: 1.5
+    is_hidden: true
+
+  - test_id: "bs_single_not_found"
+    name: "Single element not found"
+    input_data:
+      function: "binary_search"
+      args: [[5], 3]
+    expected_output: -1
+    weight: 1.5
+    is_hidden: true
+
+evaluation_criteria:
+  - "All identified bugs are fixed"
+  - "Solution handles edge cases"
+  - "Code maintains readability"
+
+scoring_rubric:
+  correctness: 60.0
+  edge_cases: 25.0
+  code_quality: 15.0
+
+max_score: 100.0
+time_limit_seconds: 60
+memory_limit_mb: 256
+allowed_languages:
+  - python
+
+tags:
+  - debugging
+  - algorithms
+  - binary-search
+  - interview
+
+author: "AlphaEvolve Team"
+version: "1.0.0"
+source: "Original"

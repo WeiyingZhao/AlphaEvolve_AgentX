@@ -1,0 +1,112 @@
+# Task: Two Sum Problem
+# Category: Code Generation
+# Difficulty: Medium
+
+task_id: "code_gen_two_sum"
+name: "Two Sum"
+category: "code_generation"
+difficulty: "medium"
+description: |
+  Implement a function `two_sum(nums, target)` that finds two numbers in the
+  array that add up to the target value and returns their indices.
+
+detailed_instructions: |
+  Write a Python function called `two_sum` that:
+  1. Takes a list of integers `nums` and an integer `target`
+  2. Returns a list of two indices [i, j] where nums[i] + nums[j] == target
+  3. You may assume each input has exactly one solution
+  4. You may not use the same element twice
+  5. The returned indices can be in any order
+
+  Example:
+  - two_sum([2, 7, 11, 15], 9) -> [0, 1] (because nums[0] + nums[1] = 2 + 7 = 9)
+
+starter_code:
+  solution.py: |
+    def two_sum(nums, target):
+        """
+        Find two numbers that add up to target and return their indices.
+
+        Args:
+            nums: List of integers
+            target: Target sum
+
+        Returns:
+            List of two indices
+        """
+        # TODO: Implement this function
+        pass
+
+reference_solution:
+  solution.py: |
+    def two_sum(nums, target):
+        """Find two numbers that add up to target."""
+        seen = {}
+        for i, num in enumerate(nums):
+            complement = target - num
+            if complement in seen:
+                return [seen[complement], i]
+            seen[num] = i
+        return []
+
+public_tests:
+  - test_id: "two_sum_basic"
+    name: "Basic two sum case"
+    input_data:
+      function: "two_sum"
+      args: [[2, 7, 11, 15], 9]
+    expected_output: [0, 1]
+    weight: 1.0
+
+  - test_id: "two_sum_middle"
+    name: "Two sum with middle elements"
+    input_data:
+      function: "two_sum"
+      args: [[3, 2, 4], 6]
+    expected_output: [1, 2]
+    weight: 1.5
+
+hidden_tests:
+  - test_id: "two_sum_negative"
+    name: "Two sum with negative numbers"
+    input_data:
+      function: "two_sum"
+      args: [[-1, -2, -3, -4, -5], -8]
+    expected_output: [2, 4]
+    weight: 2.0
+    is_hidden: true
+
+  - test_id: "two_sum_large"
+    name: "Two sum with larger input"
+    input_data:
+      function: "two_sum"
+      args: [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 19]
+    expected_output: [8, 9]
+    weight: 2.0
+    is_hidden: true
+
+evaluation_criteria:
+  - "Function returns correct indices"
+  - "Solution has optimal O(n) time complexity"
+  - "Handles edge cases correctly"
+
+scoring_rubric:
+  correctness: 50.0
+  efficiency: 30.0
+  code_quality: 20.0
+
+max_score: 100.0
+time_limit_seconds: 60
+memory_limit_mb: 256
+allowed_languages:
+  - python
+
+tags:
+  - algorithms
+  - hash-table
+  - array
+  - interview
+
+author: "AlphaEvolve Team"
+version: "1.0.0"
+source: "LeetCode-inspired"
