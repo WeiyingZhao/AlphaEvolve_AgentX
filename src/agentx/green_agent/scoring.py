@@ -105,10 +105,12 @@ class ScoringEngine:
         task: TaskDefinition,
         sandbox_enabled: bool = True,
         timeout_seconds: int = 30,
+        work_dir: Path | None = None,
     ):
         self.task = task
         self.sandbox_enabled = sandbox_enabled
         self.timeout = timeout_seconds
+        self.work_dir = work_dir
 
     def score_submission(
         self,
@@ -270,10 +272,34 @@ class ScoringEngine:
         start_time = time.time()
 
         try:
-            with tempfile.TemporaryDirectory() as tmpdir:
-                tmppath = Path(tmpdir)
+            # Use provided work_dir or create temporary one
+            if self.work_dir:
+                # Ensure it exists
+                self.work_dir.mkdir(parents=True, exist_ok=True)
+                # Use a subdirectory for this test to avoid collision? 
+                # Actually for ML tasks we WANT persistence relative to work_dir.
+                # But for unit tests we want isolation.
+                # Let's say if work_dir provided, we use it directly.
+                return self._execute_test_in_dir(self.work_dir, files, test_case, start_time)
+            else:
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    return self._execute_test_in_dir(Path(tmpdir), files, test_case, start_time)
+        except Exception as e:
+            return TestResult(
+                test_id=test_case.test_id,
+                passed=False,
+                error_message=str(e),
+            )
 
-                # Write submitted files
+    def _execute_test_in_dir(
+        self,
+        tmppath: Path,
+        files: dict[str, str],
+        test_case: TestCase,
+        start_time: float,
+    ) -> TestResult:
+        try:
+            # Write submitted files
                 for filename, content in files.items():
                     filepath = tmppath / filename
                     filepath.parent.mkdir(parents=True, exist_ok=True)
@@ -327,6 +353,19 @@ class ScoringEngine:
                 passed=False,
                 error_message=str(e),
             )
+    
+    def calculate_ml_metrics(self, output: str, expected_metric: str, baseline: float) -> dict[str, float]:
+        """Calculate ML metrics from output logs or files."""
+        # Simple parsing logic for now. 
+        # Expecting output like: "METRIC_ACCURACY: 0.95"
+        import re
+        metrics = {}
+        pattern = re.compile(r"METRIC_(\w+):\s*([\d\.]+)")
+        for match in pattern.finditer(output):
+            key, val = match.group(1).lower(), float(match.group(2))
+            metrics[key] = val
+            
+        return metrics
 
     def _generate_test_script(self, test_case: TestCase) -> str:
         """Generate a Python script to run a test case."""

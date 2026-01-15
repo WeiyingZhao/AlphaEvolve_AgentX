@@ -1,0 +1,43 @@
+task_id: refactor_simplify_conditional
+name: Simplify Conditionals
+category: refactoring
+difficulty: medium
+description: Refactor nested if/else statements into guard clauses.
+detailed_instructions: Refactor `check_access` to use guard clauses (early returns) instead of nested logic. The behavior must remain exactly the same.
+starter_code:
+  solution.py: "def check_access(user):\n    if user.get('is_active'):\n        if user.get('has_permission'):\n            if not user.get('is_locked'):\n                return True\n            else:\n                return False\n        else:\n            return False\n    else:\n        return False"
+reference_solution:
+  solution.py: "def check_access(user):\n    if not user.get('is_active'):\n        return False\n    if not user.get('has_permission'):\n        return False\n    if user.get('is_locked'):\n        return False\n    return True"
+public_tests:
+- test_id: rf1_public
+  name: Allowed User
+  input_data:
+    function: check_access
+    args:
+    - is_active: true
+      has_permission: true
+      is_locked: false
+  expected_output: true
+  weight: 1.0
+hidden_tests:
+- test_id: rf1_hidden
+  name: Locked User
+  input_data:
+    function: check_access
+    args:
+    - is_active: true
+      has_permission: true
+      is_locked: true
+  expected_output: false
+  weight: 1.0
+  is_hidden: true
+evaluation_criteria:
+- Correct behavior preserved
+- Code uses early returns
+max_score: 100.0
+time_limit_seconds: 30
+allowed_languages:
+- python
+tags:
+- refactoring
+- clean_code

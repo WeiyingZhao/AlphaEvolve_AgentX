@@ -227,59 +227,112 @@ class GreenAgent:
         """Evaluate a single task against a Purple Agent."""
         logger.info("Evaluating task", task_id=task_def.task_id)
 
-        # Create task request
-        task_request = TaskRequest(
-            task_id=task_def.task_id,
-            task_type=task_def.category.value,
-            description=task_def.description,
-            context={"detailed_instructions": task_def.detailed_instructions},
-            files={**task_def.context_files, **task_def.starter_code},
-            test_cases=[t.model_dump() for t in task_def.public_tests],
-            constraints={
-                "time_limit_seconds": task_def.time_limit_seconds,
-                "allowed_languages": task_def.allowed_languages,
-            },
-            timeout_seconds=task_def.time_limit_seconds,
-            evaluation_criteria=task_def.evaluation_criteria,
-            max_score=task_def.max_score,
-        )
+        # Determine if this is an ML task requiring persistence
+        work_dir = None
+        is_ml_task = task_def.category.value == "ml_engineering"  # String comparison to avoid import issues
+        
+        if is_ml_task:
+            # Use a persistent workspace for this task
+            work_dir = Path("/workspace") / task_def.task_id
+            work_dir.mkdir(parents=True, exist_ok=True)
+            logger.info("Using persistent workspace", path=str(work_dir))
 
-        # Send to Purple Agent
-        response = await self._protocol.send_task_request(
-            purple_agent_endpoint,
-            task_request,
-        )
+        # Iteration loop for ML tasks (self-evolution)
+        max_iterations = 3 if is_ml_task else 1
+        current_feedback = ""
+        best_result = None
 
-        # Score the response
-        if response and response.status == TaskStatus.COMPLETED:
-            scoring_engine = ScoringEngine(task_def)
-            score_result = scoring_engine.score_submission(
-                response.output_files,
-                run_hidden_tests=True,
-            )
-
-            return EvaluationResult(
+        for iteration in range(max_iterations):
+            logger.info("Starting iteration", iteration=iteration+1, task_id=task_def.task_id)
+            
+            # Create task request
+            task_request = TaskRequest(
                 task_id=task_def.task_id,
-                score=score_result.total_score,
-                max_score=score_result.max_score,
-                passed_criteria=[
-                    f"Test {r.test_id}" for r in score_result.test_results if r.passed
-                ],
-                failed_criteria=[
-                    f"Test {r.test_id}" for r in score_result.test_results if not r.passed
-                ],
-                detailed_scores=score_result.category_scores,
-                feedback="\n".join(score_result.feedback),
-                test_results=[r.model_dump() for r in score_result.test_results],
-            )
-        else:
-            error_msg = response.error_message if response else "No response received"
-            return EvaluationResult(
-                task_id=task_def.task_id,
-                score=0.0,
+                task_type=task_def.category.value,
+                description=task_def.description,
+                context={
+                    "detailed_instructions": task_def.detailed_instructions,
+                    "iteration": iteration + 1,
+                    "max_iterations": max_iterations,
+                    "previous_feedback": current_feedback
+                },
+                files={**task_def.context_files, **task_def.starter_code},
+                test_cases=[t.model_dump() for t in task_def.public_tests],
+                constraints={
+                    "time_limit_seconds": task_def.time_limit_seconds,
+                    "allowed_languages": task_def.allowed_languages,
+                },
+                timeout_seconds=task_def.time_limit_seconds,
+                evaluation_criteria=task_def.evaluation_criteria,
                 max_score=task_def.max_score,
-                feedback=f"Evaluation failed: {error_msg}",
             )
+
+            # Send to Purple Agent
+            response = await self._protocol.send_task_request(
+                purple_agent_endpoint,
+                task_request,
+            )
+
+            # Score the response
+            current_eval_result = None
+            if response and response.status == TaskStatus.COMPLETED:
+                scoring_engine = ScoringEngine(
+                    task_def, 
+                    work_dir=work_dir if is_ml_task else None
+                )
+                score_result = scoring_engine.score_submission(
+                    response.output_files,
+                    run_hidden_tests=True,
+                )
+                
+                # Check for ML metrics in logs if needed
+                if is_ml_task and task_def.evaluation_metric:
+                    # Hypothetical: scan stdout for "METRIC_XX"
+                    # For now just use score_result
+                    pass
+
+                current_eval_result = EvaluationResult(
+                    task_id=task_def.task_id,
+                    score=score_result.total_score,
+                    max_score=score_result.max_score,
+                    passed_criteria=[
+                        f"Test {r.test_id}" for r in score_result.test_results if r.passed
+                    ],
+                    failed_criteria=[
+                        f"Test {r.test_id}" for r in score_result.test_results if not r.passed
+                    ],
+                    detailed_scores=score_result.category_scores,
+                    feedback="\n".join(score_result.feedback),
+                    test_results=[r.model_dump() for r in score_result.test_results],
+                )
+                
+                # Update best result
+                if best_result is None or current_eval_result.score > best_result.score:
+                    best_result = current_eval_result
+                
+                # If perfect score, break early
+                if score_result.normalized_score >= 100.0:
+                    logger.info("Perfect score achieved, stopping iterations")
+                    break
+                
+                # Generate feedback for next iteration
+                current_feedback = f"Attempt {iteration+1} Score: {score_result.normalized_score}%\n"
+                current_feedback += f"Feedback: {current_eval_result.feedback}\n"
+                if is_ml_task:
+                     current_feedback += "Please try to improve your solution based on this feedback."
+
+            else:
+                error_msg = response.error_message if response else "No response received"
+                current_eval_result = EvaluationResult(
+                    task_id=task_def.task_id,
+                    score=0.0,
+                    max_score=task_def.max_score,
+                    feedback=f"Evaluation failed: {error_msg}",
+                )
+                if best_result is None:
+                    best_result = current_eval_result
+        
+        return best_result
 
     def generate_leaderboard(
         self,

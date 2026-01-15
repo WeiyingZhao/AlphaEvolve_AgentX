@@ -1,0 +1,55 @@
+name: Reproducibility Verification
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  verify-reproducibility:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and Start Services
+        run: |
+          docker-compose build
+          docker-compose up -d
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          
+      - name: Wait for services
+        run: |
+          # Simple wait loop for services
+          timeout 60s bash -c 'until curl -s http://localhost:8000/health && curl -s http://localhost:8001/health; do sleep 2; done'
+          
+      - name: Run Reproducibility Evaluation
+        # Run 3 times with fixed seed to test determinism
+        run: |
+          agentx evaluate --purple http://localhost:8001 --runs 3 --seed 42 --output results/reproducibility.json
+          
+      - name: Verify Results
+        run: |
+          # Check if the "is_reproducible" flag is true in the output
+          python -c "import json; data = json.load(open('results/reproducibility.json')); assert data['reproducibility_rate'] == 100.0, 'Reproducibility check failed!'"
+          
+      - name: Upload Results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: reproducibility-report
+          path: results/reproducibility.json

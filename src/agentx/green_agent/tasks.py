@@ -33,11 +33,11 @@ class TaskCategory(str, Enum):
     SECURITY_FIX = "security_fix"
     API_DESIGN = "api_design"
     DEBUGGING = "debugging"
+    ML_ENGINEERING = "ml_engineering"
 
 
 class TaskDifficulty(str, Enum):
     """Difficulty levels for tasks."""
-
     TRIVIAL = "trivial"
     EASY = "easy"
     MEDIUM = "medium"
@@ -47,7 +47,6 @@ class TaskDifficulty(str, Enum):
 
 class TestCase(BaseModel):
     """Test case for evaluating task solutions."""
-
     test_id: str
     name: str
     description: str = ""
@@ -61,7 +60,6 @@ class TestCase(BaseModel):
 
 class TaskDefinition(BaseModel):
     """Definition of an evaluation task."""
-
     task_id: str
     name: str
     category: TaskCategory
@@ -73,6 +71,12 @@ class TaskDefinition(BaseModel):
     context_files: dict[str, str] = Field(default_factory=dict)
     starter_code: dict[str, str] = Field(default_factory=dict)
     reference_solution: dict[str, str] = Field(default_factory=dict)
+
+    # ML Specific Fields
+    dataset_url: str | None = None
+    evaluation_metric: str | None = None  # e.g. "accuracy", "rmse", "f1"
+    baseline_score: float | None = None
+    medal_thresholds: dict[str, float] = Field(default_factory=dict)  # {"bronze": 0.8, "silver": 0.9}
 
     # Test cases
     public_tests: list[TestCase] = Field(default_factory=list)

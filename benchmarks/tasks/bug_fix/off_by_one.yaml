@@ -1,0 +1,49 @@
+task_id: bug_fix_off_by_one
+name: Fix Off-By-One Error
+category: bug_fix
+difficulty: easy
+description: Fix a common off-by-one error in a range sum function.
+detailed_instructions: The function `sum_range` is supposed to sum numbers from `start` to `end` (inclusive), but it's missing the last number. Fix it.
+starter_code:
+  solution.py: "def sum_range(start, end):\n    total = 0\n    for i in range(start, end):\n        total += i\n    return total"
+reference_solution:
+  solution.py: "def sum_range(start, end):\n    total = 0\n    for i in range(start, end + 1):\n        total += i\n    return total"
+public_tests:
+- test_id: bf1_public
+  name: Small Range
+  input_data:
+    function: sum_range
+    args:
+    - 1
+    - 3
+  expected_output: 6
+  weight: 1.0
+- test_id: bf1_edge
+  name: Single Number
+  input_data:
+    function: sum_range
+    args:
+    - 5
+    - 5
+  expected_output: 5
+  weight: 1.0
+hidden_tests:
+- test_id: bf1_hidden
+  name: Larger Range
+  input_data:
+    function: sum_range
+    args:
+    - 1
+    - 100
+  expected_output: 5050
+  weight: 2.0
+  is_hidden: true
+evaluation_criteria:
+- Correctly includes the end index
+max_score: 100.0
+time_limit_seconds: 30
+allowed_languages:
+- python
+tags:
+- loops
+- bug_fix

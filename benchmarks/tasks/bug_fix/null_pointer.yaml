@@ -1,0 +1,41 @@
+task_id: bug_fix_null_pointer
+name: Handle None Input
+category: bug_fix
+difficulty: easy
+description: Fix a function that crashes when input is None.
+detailed_instructions: The function `process_data` crashes if the input list is None. Modify it to return an empty list in that case.
+starter_code:
+  solution.py: "def process_data(items):\n    return [x * 2 for x in items]"
+reference_solution:
+  solution.py: "def process_data(items):\n    if items is None:\n        return []\n    return [x * 2 for x in items]"
+public_tests:
+- test_id: bf2_public
+  name: Valid Input
+  input_data:
+    function: process_data
+    args:
+    - - 1
+      - 2
+  expected_output:
+  - 2
+  - 4
+  weight: 1.0
+hidden_tests:
+- test_id: bf2_hidden
+  name: None Input
+  input_data:
+    function: process_data
+    args:
+    - null
+  expected_output: []
+  weight: 2.0
+  is_hidden: true
+evaluation_criteria:
+- Robustly handles None input
+max_score: 100.0
+time_limit_seconds: 30
+allowed_languages:
+- python
+tags:
+- error_handling
+- bug_fix

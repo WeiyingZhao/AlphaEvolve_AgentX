@@ -29,7 +29,16 @@ COPY src/ ./src/
 
 # Install Python dependencies
 RUN pip install --upgrade pip && \
-    pip install -e .
+    pip install -e . && \
+    pip install pandas scikit-learn numpy matplotlib
+
+# Create persistent workspace
+RUN mkdir -p /workspace && \
+    chown agent:agent /workspace && \
+    chmod 777 /workspace
+
+# Set volume for persistence
+VOLUME /workspace
 
 # Copy benchmark tasks
 COPY benchmarks/ ./benchmarks/
@@ -37,8 +46,16 @@ COPY benchmarks/ ./benchmarks/
 # Copy configuration files
 COPY config/ ./config/
 
-# Change ownership to non-root user
-RUN chown -R agent:agent /app
+# Change ownership to root for security (readonly code)
+RUN chown -R root:root /app
+
+# Create a restricted working directory for execution
+RUN mkdir -p /tmp/agent_work && \
+    chown -R agent:agent /tmp/agent_work && \
+    chmod 700 /tmp/agent_work
+
+# Ensure Python's tempfile module uses our restricted dir
+ENV TMPDIR=/tmp/agent_work
 
 # Switch to non-root user
 USER agent

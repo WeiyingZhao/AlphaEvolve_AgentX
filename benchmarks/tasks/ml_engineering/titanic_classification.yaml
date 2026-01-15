@@ -1,0 +1,68 @@
+task_id: "ml_titanic_classification"
+name: "Titanic Survival Prediction"
+category: "ml_engineering"
+difficulty: "medium"
+description: |
+  Build a model to predict passenger survival on the Titanic.
+  You will be evaluated on accuracy against a hidden test set.
+
+detailed_instructions: |
+  1. Load the dataset from `./data/titanic/train.csv`.
+  2. Preprocess the data (handle missing values, categorical features).
+  3. Train a classification model.
+  4. Generate predictions for `./data/titanic/test.csv`.
+  5. Save predictions to `submission.csv` with columns `PassengerId,Survived`.
+
+dataset_url: "kaggle://titanic"
+evaluation_metric: "accuracy"
+baseline_score: 0.76
+
+medal_thresholds:
+  bronze: 0.78
+  silver: 0.82
+  gold: 0.85
+
+starter_code:
+  train.py: |
+    import pandas as pd
+    from sklearn.ensemble import RandomForestClassifier
+
+    def train():
+        # Load data
+        # TODO: Implement data loading and preprocessing
+        pass
+
+    if __name__ == "__main__":
+        train()
+
+reference_solution:
+  train.py: |
+    # Reference implementation (simplified)
+    pass
+
+public_tests:
+  - test_id: "submission_format"
+    name: "Check Submission Format"
+    input_data:
+      code: |
+        import pandas as pd
+        import os
+        if not os.path.exists('submission.csv'):
+            print('FAIL: submission.csv not found')
+        else:
+            df = pd.read_csv('submission.csv')
+            if list(df.columns) == ['PassengerId', 'Survived']:
+                print('PASS')
+            else:
+                print('FAIL: Incorrect columns')
+    expected_output: "PASS"
+    weight: 1.0
+
+evaluation_criteria:
+  - "Submission format is correct"
+  - "Model accuracy exceeds baseline"
+
+max_score: 100.0
+time_limit_seconds: 300
+allowed_languages:
+  - python
